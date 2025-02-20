@@ -1,0 +1,9 @@
+flask
+flask_sqlalchemy
+reportlab
+authlib
+requests
+flask-session
+google-auth
+fpdf
+pyodbc
