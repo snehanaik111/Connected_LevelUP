@@ -94,12 +94,14 @@
                         <td>{{ user.flashcards_used }}</td>
                         
                         <td>
-                            <ul>
+                            <button class="btn btn-info view-logs-btn" data-user-id="{{ user.email }}">View Logs</button>
+                            <ul class="user-logs" id="logs-{{ user.email }}" style="display: none;">
                                 {% for log in user.logs %}
                                     <li>{{ log.service_name }} - {{ log.timestamp }}</li>
                                 {% endfor %}
                             </ul>
                         </td>
+                        
                         <td>{{ user.subscription }}</td>
                         <td>
                             {% if user.subscription == "Free" %}
@@ -114,6 +116,26 @@
         </div>
         
         <script>
+
+
+document.addEventListener("DOMContentLoaded", function() {
+        document.querySelectorAll(".view-logs-btn").forEach(button => {
+            button.addEventListener("click", function() {
+                let userId = this.getAttribute("data-user-id");
+                let logElement = document.getElementById("logs-" + userId);
+                
+                if (logElement.style.display === "none") {
+                    logElement.style.display = "block";
+                    this.textContent = "Hide Logs";
+                } else {
+                    logElement.style.display = "none";
+                    this.textContent = "View Logs";
+                }
+            });
+        });
+    });
+
+
             // Send Email Function
             function sendEmail(button) {
                 // Get the email from the same row as the clicked button
