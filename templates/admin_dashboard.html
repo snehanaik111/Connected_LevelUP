@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Admin Dashboard</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" type="text/css" href="/static/css/admin_dash.css">
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="logo-container">
+            <img src="/static/images/logo_trans.png" alt="Logo">
+        </div>
+        <h2>Admin</h2>
+        <p>admin@gmail.com</p>
+        
+        <!-- Add Font Awesome CDN for icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+<a href="#" onclick="loadContent('dashboard')" class="active">
+    <i class="fas fa-tachometer-alt"></i> Dashboard
+</a>
+<a href="#manage" onclick="loadContent('manage')">
+    <i class="fas fa-cogs"></i> Manage
+</a>
+<a href="#" onclick="loadContent('leads')">
+    <i class="fas fa-users"></i> Leads
+</a>
+<a href="#" onclick="loadContent('reports')">
+    <i class="fas fa-chart-line"></i> Reports
+</a>
+<a href="#" onclick="loadContent('settings')">
+    <i class="fas fa-cogs"></i> Settings
+</a>
+
+      
+        <a href="{{ url_for('admin_logout') }}" class="btn btn-danger logout-btn">🚪 Logout</a>
+    </div>
+
+    <!-- Sidebar toggle button -->
+    <button class="sidebar-toggler" onclick="toggleSidebar()">☰</button>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        
+
+        <div class="content-page" id="dashboard">
+            <h1>Dashboard</h1>
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="stat-card">
+                        <h4>Total Users:</h4>
+                        <p>{{total_users}}</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card">
+                        <h4>Worksheets Used:</h4>
+                        <p>{{total_worksheets}}</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card">
+                        <h4>Flashcards Used:</h4>
+                        <p>{{total_flashcards}}</p>
+                    </div>
+                </div>
+            </div>
+        
+            <h2 class="table-heading">Users Activity</h2>
+            <table class="user-table">
+                <thead>
+                    <tr>
+                        <th>Profile</th>
+                        <th>Name </th>
+                        <th>Email </th>
+                        <th>Worksheets Used</th>
+                        <th>Flashcards Used</th>
+                        <th>Activity Logs</th>
+                        <th>Subscription</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td><img src="{{ user.profile_picture }}" width="40" height="40"></td>
+                        <td>{{ user.name }}</td>
+                        <td>{{ user.email }}</td>
+                        <td>{{ user.worksheets_used }}</td>
+                        <td>{{ user.flashcards_used }}</td>
+                        
+                        <td>
+                            <ul>
+                                {% for log in user.logs %}
+                                    <li>{{ log.service_name }} - {{ log.timestamp }}</li>
+                                {% endfor %}
+                            </ul>
+                        </td>
+                        <td>{{ user.subscription }}</td>
+                        <td>
+                            {% if user.subscription == "Free" %}
+                                <button class="btn-email" onclick="sendEmail(this)">Send Email</button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            
+            </table>
+        </div>
+        
+        <script>
+            // Send Email Function
+            function sendEmail(button) {
+                // Get the email from the same row as the clicked button
+                var row = button.closest("tr");
+                var userEmail = row.querySelector(".user-email").textContent.trim();
+        
+                // Ask for confirmation of the recipient's email
+                var email = prompt("Please confirm the email address to send the email to:", userEmail);
+        
+                if (email) {
+                    // Display a popup indicating that the email has been sent
+                    alert("Email successfully sent to " + email + " to convince them to buy the paid subscription!");
+                } else {
+                    alert("No email address provided. Email not sent.");
+                }
+            }
+        </script>
+
+        
+      
+        <div class="content-page" id="manage" style="display:none;">
+            <h2>Manage Users</h2>
+        
+            <!-- User Search and Filters -->
+            <div class="manage-search">
+                <input type="text" id="search-users" placeholder="Search Users..." class="search-input" onkeyup="filterUsers()">
+                <select id="filter-role" class="role-filter" onchange="filterUsers()">
+                    <option value="">Filter by Role</option>
+                    <option value="admin">Admin</option>
+                    <option value="teacher">Teacher</option>
+                    <option value="student">Student</option>
+                    <option value="parent">Parent</option>
+                </select>
+                <button class="add-user-btn" onclick="showModal()">Add New User</button>
+            </div>
+        
+            <!-- User List Table -->
+            <table class="user-list-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="user-list-body">
+                    <!-- User data will go here dynamically -->
+                </tbody>
+            </table>
+        
+            <!-- Modal for Adding New User -->
+            <div id="add-user-modal" class="modal">
+                <div class="modal-content">
+                    <span class="close-btn">&times;</span>
+                    <h3>Add New User</h3>
+                    <form id="add-user-form">
+                        <label for="username">Username:</label>
+                        <input type="text" id="username" name="username" required><br><br>
+                        <label for="email">Email:</label>
+                        <input type="email" id="email" name="email" required><br><br>
+                        <label for="role">Role:</label>
+                        <select id="role" name="role" required>
+                            <option value="admin">Admin</option>
+                            <option value="teacher">Teacher</option>
+                            <option value="student">Student</option>
+                            <option value="parent">Parent</option>
+                        </select><br><br>
+                        <button type="submit">Add User</button>
+                    </form>
+                </div>
+            </div>
+<br>
+            <!-- Recent Activity Section -->
+<h3>Recent Activity</h3>
+<table class="table">
+    <thead>
+        <tr>
+            <th>User</th>
+            <th>Action</th>
+            <th>Worksheet</th>
+            <th>Date</th>
+            <th>PDF</th>
+        </tr>
+    </thead>
+    <tbody id="pdf-log-body"></tbody>
+</table>
+
+<!-- Modal for PDF Preview -->
+<div class="modal fade" id="pdfModal" tabindex="-1" aria-labelledby="pdfModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="pdfModalLabel">PDF Preview</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <iframe id="pdfIframe" width="100%" height="100%" style="border: none;"></iframe>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  
+  
+  
+
+<div id="pagination-controls" class="mt-3"></div>
+
+
+        </div>
+        
+    <script>  
+        // Sample data for dynamic user list
+        let users = [
+            { id: 1, username: "JohnDoe", email: "john@example.com", role: "Teacher", status: true },
+            { id: 2, username: "JaneSmith", email: "jane@example.com", role: "Admin", status: false },
+            { id: 3, username: "TomBrown", email: "tom@example.com", role: "Student", status: true },
+        ];
+        
+        // Function to show the user creation modal
+        function showModal() {
+            document.getElementById("add-user-modal").style.display = "block";
+        }
+        
+        // Function to hide the modal
+        function closeModal() {
+            document.getElementById("add-user-modal").style.display = "none";
+        }
+        
+        // Close modal if user clicks outside
+        window.onclick = function(event) {
+            if (event.target === document.getElementById("add-user-modal")) {
+                closeModal();
+            }
+        };
+        
+        // Function to render user list dynamically
+        function renderUserList(filteredUsers) {
+            const userListBody = document.getElementById('user-list-body');
+            userListBody.innerHTML = ''; // Clear current list
+        
+            filteredUsers.forEach(user => {
+                const userRow = document.createElement('tr');
+                userRow.innerHTML = `
+                    <td>${user.id}</td>
+                    <td>${user.username}</td>
+                    <td>${user.email}</td>
+                    <td>${user.role}</td>
+                    <td>
+                        <div class="status-toggle">
+                            <input type="checkbox" ${user.status ? 'checked' : ''} onclick="toggleStatus(${user.id}, this)">
+                        </div>
+                    </td>
+                    <td>
+                        <button class="edit-btn" onclick="editUser(${user.id})">Edit</button>
+                        <button class="delete-btn" onclick="deleteUser(${user.id})">Delete</button>
+                    </td>
+                `;
+                userListBody.appendChild(userRow);
+            });
+        }
+        
+        // Function to toggle user status
+        function toggleStatus(userId, checkbox) {
+            const user = users.find(u => u.id === userId);
+            user.status = checkbox.checked;
+        }
+        
+        // Function to delete a user
+        function deleteUser(userId) {
+            users = users.filter(u => u.id !== userId);
+            renderUserList(users);
+        }
+        
+        // Function to edit a user
+        function editUser(userId) {
+            const user = users.find(u => u.id === userId);
+            document.getElementById('username').value = user.username;
+            document.getElementById('email').value = user.email;
+            document.getElementById('role').value = user.role;
+            document.getElementById('add-user-modal').style.display = 'block';
+        
+            document.getElementById('add-user-form').onsubmit = function(event) {
+                event.preventDefault();
+                user.username = document.getElementById('username').value;
+                user.email = document.getElementById('email').value;
+                user.role = document.getElementById('role').value;
+                renderUserList(users);
+                closeModal();
+            };
+        }
+        
+        // Function to add a new user
+        document.getElementById('add-user-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+        
+            const newUser = {
+                id: users.length + 1,
+                username: document.getElementById('username').value,
+                email: document.getElementById('email').value,
+                role: document.getElementById('role').value,
+                status: true
+            };
+        
+            users.push(newUser);
+            renderUserList(users);
+            closeModal();
+        });
+        
+        // Modal close functionality
+        document.querySelector('.close-btn').addEventListener('click', closeModal);
+        
+        // Function to filter users
+        function filterUsers() {
+            const searchQuery = document.getElementById('search-users').value.toLowerCase();
+            const filterRole = document.getElementById('filter-role').value.toLowerCase();
+        
+            const filteredUsers = users.filter(user => {
+                const matchesSearch = user.username.toLowerCase().includes(searchQuery) || user.email.toLowerCase().includes(searchQuery);
+                const matchesRole = filterRole === "" || user.role.toLowerCase() === filterRole;
+                return matchesSearch && matchesRole;
+            });
+        
+            renderUserList(filteredUsers);
+        }
+        
+        // Initial render of the user list
+        renderUserList(users);
+</script>        
+        
+<script>
+    let currentPage = 1;
+    const itemsPerPage = 10;
+
+    function getPdfActivityLog() {
+        const log = JSON.parse(localStorage.getItem("pdfActivityLog")) || [];
+        return log.reverse(); // Show latest first
+    }
+
+    function renderPdfActivityLog() {
+        const pdfLogBody = document.getElementById('pdf-log-body');
+        pdfLogBody.innerHTML = '';
+
+        const pdfActivityLog = getPdfActivityLog();
+        const totalPages = Math.ceil(pdfActivityLog.length / itemsPerPage);
+        currentPage = Math.min(currentPage, totalPages); // Adjust if needed
+
+        const start = (currentPage - 1) * itemsPerPage;
+        const end = start + itemsPerPage;
+        const pageData = pdfActivityLog.slice(start, end);
+
+        pageData.forEach(log => {
+            const logRow = document.createElement('tr');
+            logRow.innerHTML = `
+                <td>${log.user}</td>
+                <td>${log.action}</td>
+                <td>${log.worksheet}</td>
+                <td>${log.date}</td>
+                <td>
+                    <button class="btn btn-primary" onclick="viewPdf('${log.pdf}')">View</button>
+                    <a href="${log.pdf}" download="Worksheet.pdf" class="btn btn-secondary">Download</a>
+                </td>
+            `;
+            pdfLogBody.appendChild(logRow);
+        });
+
+        renderPaginationControls(totalPages);
+    }
+
+    function renderPaginationControls(totalPages) {
+        const paginationContainer = document.getElementById('pagination-controls');
+        paginationContainer.innerHTML = '';
+
+        if (totalPages > 1) {
+            if (currentPage > 1) {
+                paginationContainer.innerHTML += `<button class="btn btn-sm btn-outline-secondary" onclick="changePage(-1)">Prev</button>`;
+            }
+            paginationContainer.innerHTML += `<span class="mx-2">Page ${currentPage} of ${totalPages}</span>`;
+            if (currentPage < totalPages) {
+                paginationContainer.innerHTML += `<button class="btn btn-sm btn-outline-secondary" onclick="changePage(1)">Next</button>`;
+            }
+        }
+    }
+
+    function changePage(direction) {
+        currentPage += direction;
+        renderPdfActivityLog();
+    }
+
+    function viewPdf(pdfBase64) {
+        // Ensure the iframe is ready to display the PDF
+        const iframe = document.getElementById('pdfIframe');
+        iframe.src = pdfBase64;
+
+        // Open the modal
+        const myModal = new bootstrap.Modal(document.getElementById('pdfModal'));
+        myModal.show();
+    }
+
+    document.addEventListener("DOMContentLoaded", renderPdfActivityLog);
+</script>
+
+
+
+<!-- Bootstrap CSS -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<!-- Bootstrap JS and Popper (needed for modal functionality) -->
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.min.js"></script>
+
+
+        
+        
+                
+        <div class="content-page" id="leads" style="display:none;">
+            <h2>Leads Content</h2>
+            <!-- Add content here -->
+        </div>
+        <div class="content-page" id="reports" style="display:none;">
+            <h2>Reports Content</h2>
+            <!-- Add content here -->
+        </div>
+        <div class="content-page" id="settings" style="display:none;">
+            <h2>Settings Content</h2>
+            <!-- Add content here -->
+        </div>
+
+    
+
+        <script>
+            // Function to load content dynamically
+            function loadContent(sectionId) {
+                const sections = document.querySelectorAll('.content-page');
+                sections.forEach(section => {
+                    section.style.display = 'none';  // Hide all sections
+                });
+
+                const activeSection = document.getElementById(sectionId);
+                if (activeSection) {
+                    activeSection.style.display = 'block';  // Show the selected section
+                }
+
+                // Update active link in sidebar
+                document.querySelectorAll('.sidebar a').forEach(link => link.classList.remove('active'));
+                event.target.classList.add('active');
+            }
+
+            // Default content
+            document.addEventListener('DOMContentLoaded', () => {
+                loadContent('dashboard');  // Load 'dashboard' section by default
+            });
+
+            // Sorting functionality
+            document.querySelectorAll('.sort-btn').forEach(button => {
+                button.addEventListener('click', () => {
+                    const sortBy = button.getAttribute('data-sort');
+                    let rows = Array.from(document.querySelectorAll('tbody tr'));
+                    rows.sort((a, b) => {
+                        let cellA = a.querySelector(`td:nth-child(${button.parentElement.cellIndex + 1})`).textContent.trim();
+                        let cellB = b.querySelector(`td:nth-child(${button.parentElement.cellIndex + 1})`).textContent.trim();
+                        if (sortBy === 'name') {
+                            return cellA.localeCompare(cellB);
+                        } else if (sortBy === 'email') {
+                            return cellA.localeCompare(cellB);
+                        }
+                        return 0;
+                    });
+                    rows.forEach(row => document.querySelector('tbody').appendChild(row));
+                });
+            });
+
+            // Show/Hide logs functionality
+            document.querySelectorAll('.log-btn').forEach(button => {
+                button.addEventListener('click', () => {
+                    const logDiv = document.getElementById(`logs-${button.getAttribute('data-user')}`);
+                    logDiv.style.display = logDiv.style.display === 'none' ? 'block' : 'none';
+                });
+            });
+
+            // Toggle sidebar visibility
+            function toggleSidebar() {
+                const sidebar = document.querySelector('.sidebar');
+                const mainContent = document.querySelector('.main-content');
+                sidebar.classList.toggle('show');
+                mainContent.classList.toggle('show-sidebar');
+            }
+        </script>
+    </div>
+</body>
+</html>
